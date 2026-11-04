@@ -1,0 +1,659 @@
+<div class="min-h-screen bg-[#fbfbfa] text-[#1c1d1f] font-sans antialiased flex flex-col md:flex-row">
+      <!-- SIDEBAR NAVIGATION -->
+      <aside class="w-full md:w-64 bg-[#f2f0eb] border-r border-stone-200 p-5 flex flex-col justify-between shrink-0">
+        <div>
+          <!-- Logo Brand Header -->
+          <div class="flex items-center gap-3 px-2 py-3 mb-6">
+            <div class="bg-[#5a7865] text-white p-2.5 rounded-xl shadow-sm">
+              <ShieldCheck class="w-6 h-6" />
+            </div>
+            <div>
+              <h1 class="font-bold text-lg tracking-tight text-[#1c1d1f]">Rod's Tracker</h1>
+              <p class="text-xs text-stone-500 font-medium">Debt & Salary Allocator</p>
+            </div>
+          </div>
+
+          <!-- Navigation Links -->
+          <nav class="space-y-1">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+              { id: 'tracker', label: 'Debt Tracker', icon: CheckSquare },
+              { id: 'salary', label: 'Salary Input', icon: Wallet },
+              { id: 'loans', label: 'Loan Management', icon: CreditCard },
+              { id: 'analytics', label: 'Analytics & Summary', icon: BarChart3 },
+              { id: 'calendar', label: 'Payment Calendar', icon: CalendarIcon },
+            ].map(item => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key="item.id"
+                  onclick="() => setActiveTab(item.id)"
+                  class="`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 ${
+                    isActive 
+                      ? 'bg-[#5a7865] text-white shadow-sm' 
+                      : 'text-stone-600 hover:bg-stone-200/60 hover:text-stone-900"`}
+                >
+                  <Icon class="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        <!-- Quick System Tools Bottom -->
+        <div class="pt-6 border-t border-stone-300/60 mt-6 space-y-2">
+          <div class="px-2 mb-2 flex items-center justify-between">
+            <p class="text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Persistence State</p>
+            {lastSavedTime && (
+              <span class="text-[10px] text-[#5a7865] font-semibold flex items-center gap-1">
+                <Save class="w-3 h-3" /> Saved {lastSavedTime}
+              </span>
+            )}
+          </div>
+          <button 
+            onclick="handleExportCSV"
+            class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-stone-700 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition"
+          >
+            <span class="flex items-center gap-2"><Download class="w-3.5 h-3.5" /> Export Schedule CSV</span>
+          </button>
+          <button 
+            onclick="handleResetData"
+            class="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition"
+          >
+            <span class="flex items-center gap-2"><RotateCcw class="w-3.5 h-3.5" /> Restore Default Schedule</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT AREA -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        <!-- HEADER BAR -->
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#5a7865]">Personal Financial System</span>
+            <h2 class="text-2xl font-bold tracking-tight capitalize text-[#1c1d1f]">
+              {activeTab === 'dashboard' && 'Financial Dashboard'}
+              {activeTab === 'tracker' && 'Debt Payment Schedule (Source of Truth)'}
+              {activeTab === 'salary' && 'Salary Allocation & Cutoffs'}
+              {activeTab === 'loans' && 'Active Loan Portfolio'}
+              {activeTab === 'analytics' && 'Financial Analytics & Trends'}
+              {activeTab === 'calendar' && 'Interactive Schedule Calendar'}
+            </h2>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="bg-white border border-stone-200 rounded-xl px-4 py-2 flex items-center gap-3 shadow-xs">
+              <div class="text-right">
+                <p class="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Overall Progress</p>
+                <p class="text-sm font-bold text-[#5a7865]">{globalMetrics.completionRate.toFixed(1)}% Paid</p>
+              </div>
+              <div class="w-10 h-10 rounded-full bg-[#5a7865]/10 flex items-center justify-center text-[#5a7865] font-bold text-xs">
+                {Math.round(globalMetrics.completionRate)}%
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- 1. DASHBOARD PAGE -->
+        {activeTab === 'dashboard' && (
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <div class="flex items-center justify-between text-stone-500 mb-2">
+                  <span class="text-xs font-medium">Total Scheduled Debt</span>
+                  <DollarSign class="w-4 h-4 text-stone-400" />
+                </div>
+                <p class="text-2xl font-bold text-[#1c1d1f]">{formatPHP(globalMetrics.totalScheduledAmount)}</p>
+                <p class="text-xs text-stone-500 mt-1">Across 281 payment entries</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <div class="flex items-center justify-between text-stone-500 mb-2">
+                  <span class="text-xs font-medium">Total Debt Paid</span>
+                  <CheckCircle2 class="w-4 h-4 text-[#5a7865]" />
+                </div>
+                <p class="text-2xl font-bold text-[#5a7865]">{formatPHP(globalMetrics.totalPaidAmount)}</p>
+                <div class="w-full bg-stone-100 rounded-full h-1.5 mt-3 overflow-hidden">
+                  <div class="bg-[#5a7865] h-full rounded-full" style={{ width: `${globalMetrics.completionRate}%` }}></div>
+                </div>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <div class="flex items-center justify-between text-stone-500 mb-2">
+                  <span class="text-xs font-medium">Remaining Debt</span>
+                  <Clock class="w-4 h-4 text-[#4a6b82]" />
+                </div>
+                <p class="text-2xl font-bold text-[#4a6b82]">{formatPHP(globalMetrics.remainingDebt)}</p>
+                <p class="text-xs text-stone-500 mt-1">{globalMetrics.pendingPaymentsCount} pending line items</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <div class="flex items-center justify-between text-stone-500 mb-2">
+                  <span class="text-xs font-medium">Active Loans</span>
+                  <Building2 class="w-4 h-4 text-stone-400" />
+                </div>
+                <p class="text-2xl font-bold text-[#1c1d1f]">{globalMetrics.activeLoansCount}</p>
+                <p class="text-xs text-stone-500 mt-1">Across 52 salary cutoffs</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
+                <div>
+                  <h3 class="text-base font-bold text-[#1c1d1f] mb-1">Debt Repayment Status</h3>
+                  <p class="text-xs text-stone-500 mb-6">Paid vs remaining total obligations</p>
+                </div>
+                
+                <div class="flex flex-col items-center justify-center my-4">
+                  <div 
+                    class="w-44 h-44 rounded-full flex items-center justify-center relative shadow-inner transition-all"
+                    style={{
+                      background: `conic-gradient(#5a7865 0% ${globalMetrics.completionRate}%, #e5e7eb ${globalMetrics.completionRate}% 100%)`
+                    }}
+                  >
+                    <div class="w-32 h-32 bg-white rounded-full flex flex-col items-center justify-center shadow-xs">
+                      <span class="text-2xl font-extrabold text-[#1c1d1f]">{globalMetrics.completionRate.toFixed(1)}%</span>
+                      <span class="text-[11px] font-semibold text-stone-500 uppercase tracking-wider">Completed</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-stone-100 text-center">
+                  <div>
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#5a7865] mr-1.5"></span>
+                    <span class="text-xs text-stone-500">Paid:</span>
+                    <p class="text-sm font-bold text-[#5a7865]">{formatPHP(globalMetrics.totalPaidAmount)}</p>
+                  </div>
+                  <div>
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-stone-300 mr-1.5"></span>
+                    <span class="text-xs text-stone-500">Remaining:</span>
+                    <p class="text-sm font-bold text-stone-700">{formatPHP(globalMetrics.remainingDebt)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs lg:col-span-2">
+                <h3 class="text-base font-bold text-[#1c1d1f] mb-1">Loan Contribution Breakdown</h3>
+                <p class="text-xs text-stone-500 mb-6">Total financial weight per biller</p>
+                <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                  {loans.map(loan => {
+                    const loanTotal = payments.filter(p => p.loanName === loan.name).reduce((s, p) => s + p.amount, 0);
+                    const loanPaid = payments.filter(p => p.loanName === loan.name && p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
+                    const pct = loanTotal > 0 ? (loanPaid / loanTotal) * 100 : 0;
+                    return (
+                      <div key="loan.id" class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                          <span class="font-semibold text-stone-800">{loan.name} ({loan.splits === 2 ? '2 Splits' : '1 Split'})</span>
+                          <span class="text-stone-500">{formatPHP(loanPaid)} / {formatPHP(loanTotal)} ({pct.toFixed(0)}%)</span>
+                        </div>
+                        <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden flex">
+                          <div class="bg-[#5a7865] h-full transition-all duration-300" style={{ width: `${pct}%` }}></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-base font-bold text-[#1c1d1f]">Upcoming Obligations Feed</h3>
+                  <p class="text-xs text-stone-500">Next scheduled payments requiring attention</p>
+                </div>
+                <button onclick="() => setActiveTab('tracker')" class="text-xs font-semibold text-[#5a7865] hover:underline flex items-center gap-1">
+                  View All Schedule <ChevronRight class="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div class="divide-y divide-stone-100">
+                {payments.filter(p => p.status === 'PENDING').slice(0, 5).map(pmt => (
+                  <div key="pmt.id" class="py-3 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600 font-bold text-xs">
+                        #{pmt.installmentNumber}
+                      </div>
+                      <div>
+                        <h4 class="text-sm font-semibold text-stone-900">{pmt.loanName} {pmt.installmentNumber}</h4>
+                        <p class="text-xs text-stone-500">{pmt.periodName} • Due: <span class="font-medium text-stone-700">{formatAlphaDate(pmt.dueDate)}</span></p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                      <span class="text-sm font-bold text-stone-900">{formatPHP(pmt.amount)}</span>
+                      <button 
+                        onclick="() => togglePaymentStatus(pmt.id)"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#5a7865]/10 text-[#5a7865] hover:bg-[#5a7865] hover:text-white transition"
+                      >
+                        Mark Paid
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- 2. DEBT TRACKER PAGE (SOURCE OF TRUTH) -->
+        {activeTab === 'tracker' && (
+          <div class="space-y-6">
+            <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div class="relative w-full md:w-72">
+                <Search class="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                <input
+                  type="text"
+                  placeholder="Search loan or period..."
+                  value="trackerSearch"
+                  onchange="(e) => setTrackerSearch(e.target.value)"
+                  class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5a7865]"
+                />
+              </div>
+
+              <div class="flex items-center gap-1 bg-stone-100 p-1 rounded-xl w-full md:w-auto">
+                {['ALL', 'PENDING', 'PAID'].map(st => (
+                  <button
+                    key="st"
+                    onclick="() => setTrackerFilterStatus(st)"
+                    class="`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                      trackerFilterStatus === st ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-500 hover:text-stone-900"`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+
+              <div class="flex items-center gap-3 w-full md:w-auto">
+                <select
+                  value="trackerFilterLoan"
+                  onchange="(e) => setTrackerFilterLoan(e.target.value)"
+                  class="py-2 px-3 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5a7865]"
+                >
+                  <option value="ALL">All Biller Loans</option>
+                  {loans.map(l => (
+                    <option key="l.id" value="l.name">{l.name}</option>
+                  ))}
+                </select>
+
+                <button
+                  onclick="() => setIsAddPaymentModalOpen(true)"
+                  class="px-3.5 py-2 bg-[#5a7865] text-white rounded-xl text-xs font-semibold hover:bg-[#4a6554] transition flex items-center gap-1.5 shrink-0"
+                >
+                  <Plus class="w-4 h-4" /> Add Payment Line
+                </button>
+              </div>
+            </div>
+
+            <!-- Source of Truth Table -->
+            <div class="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+              <div class="overflow-x-auto max-h-[70vh] overflow-y-auto">
+                <table class="w-full text-left border-collapse relative">
+                  <thead class="sticky top-0 z-10">
+                    <tr class="bg-stone-100 border-b border-stone-200 text-[11px] uppercase tracking-wider text-stone-600 font-semibold shadow-xs">
+                      <th class="py-3.5 px-4 text-center">Status</th>
+                      <th class="py-3.5 px-4">Loan Name</th>
+                      <th class="py-3.5 px-4">Installment</th>
+                      <th class="py-3.5 px-4">Salary Period</th>
+                      <th class="py-3.5 px-4">Actual Due Date</th>
+                      <th class="py-3.5 px-4 text-right">Scheduled Amount</th>
+                      <th class="py-3.5 px-4">Date Paid</th>
+                      <th class="py-3.5 px-4">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-stone-100 text-xs">
+                    {payments
+                      .filter(p => {
+                        const matchesStatus = trackerFilterStatus === 'ALL' || p.status === trackerFilterStatus;
+                        const matchesLoan = trackerFilterLoan === 'ALL' || p.loanName === trackerFilterLoan;
+                        const matchesSearch = p.loanName.toLowerCase().includes(trackerSearch.toLowerCase()) || p.periodName.toLowerCase().includes(trackerSearch.toLowerCase());
+                        return matchesStatus && matchesLoan && matchesSearch;
+                      })
+                      .map((pmt) => {
+                        const isPaid = pmt.status === 'PAID';
+                        return (
+                          <tr key="pmt.id" class="`hover:bg-stone-50/60 transition ${isPaid ? 'bg-stone-50/30' : '"`}>
+                            <td class="py-3 px-4 text-center">
+                              <input 
+                                type="checkbox"
+                                checked="isPaid"
+                                onchange="() => togglePaymentStatus(pmt.id)"
+                                class="w-4 h-4 rounded text-[#5a7865] focus:ring-[#5a7865] cursor-pointer"
+                              />
+                            </td>
+                            <td class="py-3 px-4 font-bold text-stone-900">{pmt.loanName}</td>
+                            <td class="py-3 px-4 font-medium text-stone-600">
+                              <span class="px-2 py-0.5 bg-stone-100 rounded text-[10px] font-semibold text-stone-700">Split #{pmt.installmentNumber}</span>
+                            </td>
+                            <td class="py-3 px-4 font-medium text-stone-600">{pmt.periodName}</td>
+                            <td class="py-3 px-4 font-semibold text-[#4a6b82]">{formatAlphaDate(pmt.dueDate)}</td>
+                            <td class="py-3 px-4 text-right font-bold text-stone-900">{formatPHP(pmt.amount)}</td>
+                            <td class="py-3 px-4 text-stone-500">{pmt.paidDate ? formatAlphaDate(pmt.paidDate) : '-'}</td>
+                            <td class="py-3 px-4 text-stone-500 italic max-w-xs truncate">{pmt.remarks}</td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+              <div class="p-3 bg-stone-50 border-t border-stone-200 text-center text-xs text-stone-500 font-medium">
+                Master Ledger View: Checkboxes instantly persist state changes into local storage.
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- Modal for Adding Custom Line Item -->
+        {isAddPaymentModalOpen && (
+          <div class="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-2xl max-w-md w-full space-y-4 shadow-xl">
+              <h3 class="text-lg font-bold text-stone-900">Add Payment Schedule Entry</h3>
+              <form onsubmit="handleAddPayment" class="space-y-3 text-xs">
+                <div>
+                  <label class="font-semibold block mb-1">Loan / Biller Name</label>
+                  <input
+                    type="text"
+                    required
+                    value="newPayment.loanName"
+                    onchange="(e) => setNewPayment({ ...newPayment, loanName: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label class="font-semibold block mb-1">Installment Number</label>
+                  <input
+                    type="number"
+                    required
+                    value="newPayment.installmentNumber"
+                    onchange="(e) => setNewPayment({ ...newPayment, installmentNumber: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label class="font-semibold block mb-1">Salary Period Cutoff</label>
+                  <select
+                    value="newPayment.periodId"
+                    onchange="(e) => setNewPayment({ ...newPayment, periodId: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  >
+                    {periods.map(p => (
+                      <option key="p.id" value="p.id">{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label class="font-semibold block mb-1">Actual Loan Due Date</label>
+                  <input
+                    type="date"
+                    required
+                    value="newPayment.dueDate"
+                    onchange="(e) => setNewPayment({ ...newPayment, dueDate: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label class="font-semibold block mb-1">Amount (₱)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value="newPayment.amount"
+                    onchange="(e) => setNewPayment({ ...newPayment, amount: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label class="font-semibold block mb-1">Remarks</label>
+                  <input
+                    type="text"
+                    value="newPayment.remarks"
+                    onchange="(e) => setNewPayment({ ...newPayment, remarks: e.target.value")}
+                    class="w-full p-2.5 border border-stone-300 rounded-xl"
+                  />
+                </div>
+                <div class="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onclick="() => setIsAddPaymentModalOpen(false)"
+                    class="w-1/2 py-2.5 bg-stone-100 text-stone-700 font-semibold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="w-1/2 py-2.5 bg-[#5a7865] text-white font-semibold rounded-xl"
+                  >
+                    Save Entry
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <!-- 3. SALARY INPUT PAGE -->
+        {activeTab === 'salary' && (
+          <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <label class="text-xs font-semibold uppercase tracking-wider text-stone-500 block mb-1">Select Payroll Cutoff Period</label>
+                <select
+                  value="selectedPeriodId"
+                  onchange="(e) => setSelectedPeriodId(e.target.value)"
+                  class="py-2.5 px-4 bg-stone-50 border border-stone-300 rounded-xl text-base font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#5a7865]"
+                >
+                  {periods.map(p => (
+                    <option key="p.id" value="p.id">{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div class="w-full md:w-auto">
+                <label class="text-xs font-semibold uppercase tracking-wider text-stone-500 block mb-1">Salary Input for Period (₱)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-stone-500 font-bold">₱</span>
+                  <input
+                    type="number"
+                    value="currentPeriodData.salaryReceived"
+                    onchange="(e) => handleSalaryChange(selectedPeriodId, e.target.value)"
+                    class="pl-8 pr-4 py-2 bg-stone-50 border border-stone-300 rounded-xl font-bold text-stone-900 text-lg w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-[#5a7865]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#4a6b82]/10 border border-[#4a6b82]/20 p-4 rounded-2xl flex items-start gap-3">
+              <Info class="w-5 h-5 text-[#4a6b82] shrink-0 mt-0.5" />
+              <div class="text-xs text-[#3b576c] space-y-1">
+                <p class="font-bold">Projected Remaining Salary vs. Actual Available Balance</p>
+                <p>
+                  <strong>Projected Remaining Salary</strong> deducts <em>ALL</em> scheduled debts for this cutoff regardless of payment status (giving you a realistic budgeting view).
+                  <strong> Actual Available Balance</strong> only deducts debts marked as <em>PAID</em>.
+                </p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <p class="text-xs font-semibold text-stone-500">Salary Received</p>
+                <p class="text-2xl font-bold text-stone-900 mt-1">{formatPHP(currentPeriodData.salaryReceived)}</p>
+                <p class="text-[11px] text-stone-400 mt-1">Base income for cutoff</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <p class="text-xs font-semibold text-stone-500">Total Scheduled Debt</p>
+                <p class="text-2xl font-bold text-amber-600 mt-1">{formatPHP(currentPeriodData.totalScheduledDebt)}</p>
+                <p class="text-[11px] text-stone-400 mt-1">DTI: {currentPeriodData.dtiRatio.toFixed(1)}%</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <p class="text-xs font-semibold text-stone-500">Projected Remaining Salary</p>
+                <p class="`text-2xl font-bold mt-1 ${currentPeriodData.projectedRemainingSalary >= 0 ? 'text-[#5a7865]' : 'text-rose-600"`}>
+                  {formatPHP(currentPeriodData.projectedRemainingSalary)}
+                </p>
+                <p class="text-[11px] text-stone-400 mt-1">After ALL period obligations</p>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs">
+                <p class="text-xs font-semibold text-stone-500">Actual Available Balance</p>
+                <p class="text-2xl font-bold text-[#4a6b82] mt-1">{formatPHP(currentPeriodData.actualAvailableBalance)}</p>
+                <p class="text-[11px] text-stone-400 mt-1">Cash remaining today</p>
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 class="text-base font-bold text-stone-900 mb-1">
+                Assigned Debt Obligations for {currentPeriodData.periodObj.name}
+              </h3>
+              <p class="text-xs text-stone-500 mb-4">Toggle payments to see live updates to your actual balance.</p>
+
+              <div class="space-y-3">
+                {currentPeriodData.periodPayments.length === 0 ? (
+                  <p class="text-xs text-stone-500 italic py-4 text-center">No debt payments assigned to this period.</p>
+                ) : (
+                  currentPeriodData.periodPayments.map(pmt => (
+                    <div 
+                      key="pmt.id" 
+                      class="`p-4 rounded-xl border transition flex items-center justify-between gap-4 ${
+                        pmt.status === 'PAID' ? 'bg-[#5a7865]/5 border-[#5a7865]/30' : 'bg-stone-50 border-stone-200"`}
+                    >
+                      <div class="flex items-center gap-3">
+                        <input 
+                          type="checkbox"
+                          checked="pmt.status === 'PAID"
+                          onchange="() => togglePaymentStatus(pmt.id)"
+                          class="w-5 h-5 rounded text-[#5a7865] focus:ring-[#5a7865] cursor-pointer"
+                        />
+                        <div>
+                          <p class="text-sm font-bold text-stone-900">{pmt.loanName} {pmt.installmentNumber}</p>
+                          <p class="text-xs text-stone-500">Actual Due Date: <span class="font-semibold text-stone-700">{formatAlphaDate(pmt.dueDate)}</span></p>
+                        </div>
+                      </div>
+                      <div class="text-right">
+                        <p class="text-base font-bold text-stone-900">{formatPHP(pmt.amount)}</p>
+                        <span class="`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                          pmt.status === 'PAID' ? 'bg-[#5a7865] text-white' : 'bg-amber-100 text-amber-800"`}>
+                          {pmt.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- 4. LOAN MANAGEMENT PAGE -->
+        {activeTab === 'loans' && (
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loans.map(loan => {
+                const loanPmts = payments.filter(p => p.loanName === loan.name);
+                const totalPaid = loanPmts.filter(p => p.status === 'PAID').reduce((s, p) => s + p.amount, 0);
+                const totalScheduled = loanPmts.reduce((s, p) => s + p.amount, 0);
+                const remaining = totalScheduled - totalPaid;
+                const completionPct = totalScheduled > 0 ? (totalPaid / totalScheduled) * 100 : 0;
+
+                return (
+                  <div key="loan.id" class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between mb-4">
+                        <div class="p-2.5 rounded-xl bg-stone-100 text-[#5a7865]">
+                          <Building2 class="w-5 h-5" />
+                        </div>
+                        <span class="text-xs font-bold text-[#4a6b82] bg-[#4a6b82]/10 px-2.5 py-1 rounded-full">
+                          {loan.splits === 2 ? '2 Bi-Monthly Splits' : 'Single Period Split'}
+                        </span>
+                      </div>
+
+                      <h3 class="text-lg font-bold text-stone-900">{loan.name}</h3>
+                      <p class="text-xs text-stone-500 mb-4">Payoff Date: <span class="font-semibold text-stone-700">{formatAlphaDate(loan.payoffDate)}</span></p>
+
+                      <div class="space-y-2 text-xs mb-4">
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Monthly Obligation:</span>
+                          <span class="font-bold text-stone-900">{formatPHP(loan.monthlyAmount)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Total Paid:</span>
+                          <span class="font-bold text-[#5a7865]">{formatPHP(totalPaid)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Remaining Balance:</span>
+                          <span class="font-bold text-stone-700">{formatPHP(remaining)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span class="text-stone-500">Payoff Progress</span>
+                        <span class="text-[#5a7865]">{completionPct.toFixed(1)}%</span>
+                      </div>
+                      <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                        <div class="bg-[#5a7865] h-full rounded-full transition-all" style={{ width: `${completionPct}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <!-- 5. ANALYTICS & SUMMARY -->
+        {activeTab === 'analytics' && (
+          <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
+              <h3 class="text-base font-bold text-stone-900 mb-2">Bi-Monthly Outflow Distribution</h3>
+              <p class="text-xs text-stone-500 mb-6">Visualizing debt obligation weight per period</p>
+              
+              <div class="h-64 flex items-end gap-2 pt-6 pb-2 px-2 border-b border-stone-200 overflow-x-auto">
+                {periods.slice(0, 15).map(p => {
+                  const pTotal = payments.filter(pmt => pmt.periodId === p.id).reduce((s, pmt) => s + pmt.amount, 0);
+                  const heightPct = Math.min((pTotal / 25000) * 100, 100);
+                  return (
+                    <div key="p.id" class="flex-1 flex flex-col items-center gap-2 min-w-[40px]">
+                      <span class="text-[10px] font-bold text-stone-600">₱{(pTotal / 1000).toFixed(1)}k</span>
+                      <div class="w-full bg-[#5a7865]/20 rounded-t-md hover:bg-[#5a7865] transition-all relative group" style={{ height: `${heightPct}%` }}>
+                        <div class="bg-[#5a7865] w-full bottom-0 absolute rounded-t-md" style="height: 100%"></div>
+                      </div>
+                      <span class="text-[9px] text-stone-400 rotate-45 origin-left whitespace-nowrap mt-2">{p.name.split(',')[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- 6. PAYMENT CALENDAR -->
+        {activeTab === 'calendar' && (
+          <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-base font-bold text-stone-900">Debt Schedule Timeline</h3>
+              <span class="text-xs text-stone-500 font-semibold">2026 – 2028 Horizon ({payments.length} Scheduled Payments)</span>
+            </div>
+            
+            <div class="divide-y divide-stone-100 max-h-[70vh] overflow-y-auto pr-2">
+              {payments.map(pmt => (
+                <div key="pmt.id" class="py-3 flex items-center justify-between hover:bg-stone-50/60 px-2 rounded-lg transition">
+                  <div>
+                    <p class="text-sm font-bold text-stone-900">{pmt.loanName} {pmt.installmentNumber}</p>
+                    <p class="text-xs text-stone-500">Period: {pmt.periodName} | Due: <span class="text-[#4a6b82] font-semibold">{formatAlphaDate(pmt.dueDate)}</span></p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-bold text-stone-900">{formatPHP(pmt.amount)}</p>
+                    <span class="`text-[10px] font-bold px-2 py-0.5 rounded ${pmt.status === 'PAID' ? 'bg-[#5a7865]/10 text-[#5a7865]' : 'bg-amber-100 text-amber-800"`}>
+                      {pmt.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
